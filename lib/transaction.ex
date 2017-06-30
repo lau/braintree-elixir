@@ -138,9 +138,19 @@ defmodule Braintree.Transaction do
     case HTTP.post("transactions", %{transaction: sale_params}) do
       {:ok, %{"transaction" => transaction}} ->
         {:ok, construct(transaction)}
-      {:error, %{"api_error_response" => error}} ->
-        {:error, Error.construct(error)}
+      {:error, %{"api_error_response" => api_error_response}} ->
+        {:error, transaction_error(api_error_response)}
     end
+  end
+
+  # Takes an error reponse and returns a map based on an ErrorResponse struct
+  # but with the __struct__ key removed and more details added.
+  # The ErrorResponse struct omits valuable information in the API reponse as
+  # of braintree-elixir version 0.7.0. This function includes more information.
+  defp transaction_error(api_error_reponse) do
+    Error.construct(api_error_reponse)
+    |> Map.delete(:__struct__)
+    |> Map.merge(%{api_error_reponse: api_error_reponse})
   end
 
   @doc """
